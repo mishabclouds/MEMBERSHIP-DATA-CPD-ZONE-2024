@@ -87,15 +87,23 @@ with st.sidebar:
         st.session_state.user = None
         st.rerun()
 
+import streamlit as st
+import pandas as pd
+
+# (Keep Section 1 and Section 2 exactly the same)
+
 # ==========================================
-# 3. DATA LOADING (GOOGLE SHEETS)
+# 3. DATA LOADING (DIRECT PUBLIC SHEET API)
 # ==========================================
+# Paste your exact Sheet ID here inside the quotes
+SHEET_ID = "16oELiftqVqKc3KEX0INOZ1rKBf6JEeJKC171tZEv9Uk" 
+
 @st.cache_data(ttl=5)
 def load_data():
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    df = conn.read() # defaults to first sheet
+    # Read directly from the public Google Sheets CSV export URL
+    csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
+    df = pd.read_csv(csv_url)
     
-    # Ensure our feedback and audit columns exist
     if 'Reason_for_non_completion' not in df.columns:
         df['Reason_for_non_completion'] = ""
     if 'Last_Updated_By' not in df.columns:
