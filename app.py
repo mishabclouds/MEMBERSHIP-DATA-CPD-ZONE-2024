@@ -1,10 +1,9 @@
 import streamlit as st
 import pandas as pd
+from streamlit_gsheets import GSheetsConnection
 
 # Mobile-optimized layout
 st.set_page_config(page_title="SKSSF Sprint | Live Portal", layout="wide", initial_sidebar_state="collapsed")
-
-DATA_FILE = "skssf_master.csv"
 
 # ==========================================
 # 1. SECURITY & AUTHENTICATION MAPPING
@@ -89,22 +88,12 @@ with st.sidebar:
         st.rerun()
 
 # ==========================================
-# 3. DATA LOADING & AUDIT TRACKING
-# ==========================================
-import streamlit as st
-import pandas as pd
-from streamlit_gsheets import GSheetsConnection
-
-# Mobile-optimized layout
-st.set_page_config(page_title="SKSSF Sprint | Live Portal", layout="wide", initial_sidebar_state="collapsed")
-
-# ==========================================
-# 3. DATA LOADING & AUDIT TRACKING (CLOUD VERSION)
+# 3. DATA LOADING (GOOGLE SHEETS)
 # ==========================================
 @st.cache_data(ttl=5)
 def load_data():
     conn = st.connection("gsheets", type=GSheetsConnection)
-    df = conn.read(worksheet="Sheet1")
+    df = conn.read() # defaults to first sheet
     
     # Ensure our feedback and audit columns exist
     if 'Reason_for_non_completion' not in df.columns:
@@ -174,13 +163,23 @@ if pending_count > 0:
         use_container_width=True
     )
     
-    if changes_made:
-            # Connect to Google Sheets and overwrite with the updated dataframe
+    if st.button("💾 Save Updates", type="primary", use_container_width=True):
+        changes_made = False
+        for index, row in edited_pending.iterrows():
+            orig_row = pending_df.loc[index]
+            
+            if row['2026_Uploaded'] != orig_row['2026_Uploaded'] or row['Reason_for_non_completion'] != orig_row['Reason_for_non_completion']:
+                df.at[index, '2026_Uploaded'] = row['2026_Uploaded']
+                df.at[index, 'Reason_for_non_completion'] = row['Reason_for_non_completion']
+                df.at[index, 'Last_Updated_By'] = st.session_state.user['name']
+                changes_made = True
+                
+        if changes_made:
             conn = st.connection("gsheets", type=GSheetsConnection)
-            conn.update(worksheet="Sheet1", data=df)
+            conn.update(data=df)
             
             st.success("✅ Cloud Database Updated Successfully!")
-            st.cache_data.clear() # Clear cache to fetch fresh data instantly
+            st.cache_data.clear()
             st.rerun()
         else:
             st.info("No changes to save.")
