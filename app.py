@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
-import json
 
 # Mobile-optimized layout
 st.set_page_config(page_title="SKSSF Sprint | Live Portal", layout="wide", initial_sidebar_state="collapsed")
@@ -88,16 +87,14 @@ with st.sidebar:
         st.rerun()
 
 # ==========================================
-# 3. DATA LOADING (INJECTED RAW SECRETS)
+# 3. DATA LOADING (NATIVE STREAMLIT CONNECTION)
 # ==========================================
-# Hardcoding the public URL prevents accidental Streamlit secret key errors
 SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/16oELiftqVqKc3KEX0INOZ1rKBf6JEeJKC171tZEv9Uk/edit"
 
 @st.cache_data(ttl=5)
 def load_data():
-    creds = json.loads(st.secrets["GOOGLE_JSON"])
-    
-    conn = st.connection("gsheets", type=GSheetsConnection, service_account_info=creds)
+    # Streamlit natively reads the [connections.gsheets] block from secrets.toml
+    conn = st.connection("gsheets", type=GSheetsConnection)
     df = conn.read(spreadsheet=SPREADSHEET_URL)
     
     if 'Reason_for_non_completion' not in df.columns:
@@ -179,8 +176,8 @@ if pending_count > 0:
                 changes_made = True
                 
         if changes_made:
-            creds = json.loads(st.secrets["GOOGLE_JSON"])
-            conn = st.connection("gsheets", type=GSheetsConnection, service_account_info=creds)
+            # Reconnect directly using native parameters
+            conn = st.connection("gsheets", type=GSheetsConnection)
             conn.update(spreadsheet=SPREADSHEET_URL, data=df)
             
             st.success("✅ Cloud Database Updated Successfully!")
