@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
+import json
 
 # Mobile-optimized layout
 st.set_page_config(page_title="SKSSF Sprint | Live Portal", layout="wide", initial_sidebar_state="collapsed")
@@ -80,29 +81,22 @@ if st.session_state.user is None:
             st.error("Number not recognized. Contact Admin.")
     st.stop()
 
-# Logout button in sidebar
 with st.sidebar:
     st.write(f"Logged in as: **{st.session_state.user['name']}**")
     if st.button("Logout"):
         st.session_state.user = None
         st.rerun()
 
-import streamlit as st
-import pandas as pd
-
-# (Keep Section 1 and Section 2 exactly the same)
-
 # ==========================================
-# 3. DATA LOADING (DIRECT PUBLIC SHEET API)
+# 3. DATA LOADING (INJECTED RAW SECRETS)
 # ==========================================
-# Paste your exact Sheet ID here inside the quotes
-SHEET_ID = "16oELiftqVqKc3KEX0INOZ1rKBf6JEeJKC171tZEv9Uk" 
-
 @st.cache_data(ttl=5)
 def load_data():
-    # Read directly from the public Google Sheets CSV export URL
-    csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
-    df = pd.read_csv(csv_url)
+    creds = json.loads(st.secrets["GOOGLE_JSON"])
+    sheet_url = st.secrets["SPREADSHEET_URL"]
+    
+    conn = st.connection("gsheets", type=GSheetsConnection, service_account_info=creds)
+    df = conn.read(spreadsheet=sheet_url)
     
     if 'Reason_for_non_completion' not in df.columns:
         df['Reason_for_non_completion'] = ""
@@ -143,7 +137,7 @@ st.progress(done_count / total_count if total_count > 0 else 0)
 st.markdown("---")
 
 # ==========================================
-# 5. SPLIT LISTS: PENDING VS COMPLETED
+# 5. SPLIT LISTS & CLOUD SAVING
 # ==========================================
 st.subheader(f"⏳ Pending Members ({pending_count})")
 st.caption("Tick the box ONLY after submitting in the SKSSF app.")
@@ -183,8 +177,11 @@ if pending_count > 0:
                 changes_made = True
                 
         if changes_made:
-            conn = st.connection("gsheets", type=GSheetsConnection)
-            conn.update(data=df)
+            # Inject credentials directly into the save function
+            creds = json.loads(st.secrets["GOOGLE_JSON"])
+            sheet_url = st.secrets["SPREADSHEET_URL"]
+            conn = st.connection("gsheets", type=GSheetsConnection, service_account_info=creds)
+            conn.update(spreadsheet=sheet_url, data=df)
             
             st.success("✅ Cloud Database Updated Successfully!")
             st.cache_data.clear()
