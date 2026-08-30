@@ -72,7 +72,7 @@ if st.session_state.user is None:
     
     mobile_input = st.text_input("Mobile Number", type="password", placeholder="10-digit number")
     
-    if st.button("Login", use_container_width=True):
+    if st.button("Login", width="stretch"):
         clean_number = mobile_input.strip()
         if clean_number in COORDINATORS:
             st.session_state.user = COORDINATORS[clean_number]
@@ -90,13 +90,15 @@ with st.sidebar:
 # ==========================================
 # 3. DATA LOADING (INJECTED RAW SECRETS)
 # ==========================================
+# Hardcoding the public URL prevents accidental Streamlit secret key errors
+SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/16oELiftqVqKc3KEX0INOZ1rKBf6JEeJKC171tZEv9Uk/edit"
+
 @st.cache_data(ttl=5)
 def load_data():
     creds = json.loads(st.secrets["GOOGLE_JSON"])
-    sheet_url = st.secrets["https://docs.google.com/spreadsheets/d/16oELiftqVqKc3KEX0INOZ1rKBf6JEeJKC171tZEv9Uk/edit"]
     
     conn = st.connection("gsheets", type=GSheetsConnection, service_account_info=creds)
-    df = conn.read(spreadsheet=sheet_url)
+    df = conn.read(spreadsheet=SPREADSHEET_URL)
     
     if 'Reason_for_non_completion' not in df.columns:
         df['Reason_for_non_completion'] = ""
@@ -162,10 +164,10 @@ if pending_count > 0:
         pending_df,
         column_config=col_config,
         hide_index=True,
-        use_container_width=True
+        width="stretch"
     )
     
-    if st.button("💾 Save Updates", type="primary", use_container_width=True):
+    if st.button("💾 Save Updates", type="primary", width="stretch"):
         changes_made = False
         for index, row in edited_pending.iterrows():
             orig_row = pending_df.loc[index]
@@ -177,11 +179,9 @@ if pending_count > 0:
                 changes_made = True
                 
         if changes_made:
-            # Inject credentials directly into the save function
             creds = json.loads(st.secrets["GOOGLE_JSON"])
-            sheet_url = st.secrets["SPREADSHEET_URL"]
             conn = st.connection("gsheets", type=GSheetsConnection, service_account_info=creds)
-            conn.update(spreadsheet=sheet_url, data=df)
+            conn.update(spreadsheet=SPREADSHEET_URL, data=df)
             
             st.success("✅ Cloud Database Updated Successfully!")
             st.cache_data.clear()
@@ -200,5 +200,5 @@ if done_count > 0:
     st.dataframe(
         completed_df[['Name', 'Mobile', 'Reason_for_non_completion', 'Last_Updated_By'] if is_admin else ['Name', 'Mobile', 'Reason_for_non_completion']],
         hide_index=True,
-        use_container_width=True
+        width="stretch"
     )
