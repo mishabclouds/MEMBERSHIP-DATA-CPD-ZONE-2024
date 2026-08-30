@@ -54,7 +54,6 @@ COORDINATORS = {
     "9446068970": {"name": "VM IRSHAD WAFY", "unit": "MATTATH KULAMBU"},
     "9048194199": {"name": "MUHAMMED NABEEL", "unit": "PANG KADANNAMUTTY"},
     "8921055575": {"name": "MOHAMMED FAIZ", "unit": "PANG KADANNAMUTTY"},
-    "7356941375": {"name": "MISHAB KANAKKAYIL", "unit": "PANG KADANNAMUTTY"},
     "8590961354": {"name": "SHAHID AMEEN P", "unit": "PANG KADANNAMUTTY"},
     "9037800278": {"name": "SHAMHAN K", "unit": "PANG KADANNAMUTTY"}
 }
@@ -96,6 +95,12 @@ def load_data():
     conn = st.connection("gsheets", type=GSheetsConnection)
     df = conn.read(spreadsheet=SPREADSHEET_URL)
     
+    # --- NEW: Ensure 2026_Uploaded is strictly boolean ---
+    if '2026_Uploaded' not in df.columns:
+        df['2026_Uploaded'] = False
+    df['2026_Uploaded'] = df['2026_Uploaded'].fillna(False).astype(bool)
+    # -----------------------------------------------------
+
     if 'Reason_for_non_completion' not in df.columns:
         df['Reason_for_non_completion'] = ""
     if 'Last_Updated_By' not in df.columns:
