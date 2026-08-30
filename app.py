@@ -93,7 +93,7 @@ with st.sidebar:
 @st.cache_data(ttl=5)
 def load_data():
     creds = json.loads(st.secrets["GOOGLE_JSON"])
-    sheet_url = st.secrets["SPREADSHEET_URL"]
+    sheet_url = st.secrets["https://docs.google.com/spreadsheets/d/16oELiftqVqKc3KEX0INOZ1rKBf6JEeJKC171tZEv9Uk/edit"]
     
     conn = st.connection("gsheets", type=GSheetsConnection, service_account_info=creds)
     df = conn.read(spreadsheet=sheet_url)
